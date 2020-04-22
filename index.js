@@ -21,7 +21,7 @@ bot.on("ready",() => {
 //lgnames: noms des loups pour PF
 global.game = false;
 //global.compo = ["wolf","wolf","seer","hunter","villager","villager","villager","villager"];
-global.compo = ["wolf","witch","hunter","seer","villager"];
+global.compo = ["wolf","witch","cupid"];
 //global.compo = ["witch","hunter","wolf","wolf","villager","villager","villager","villager"];
 global.lgnames = ["Loup Koum", "Loup Che", "Loup Ysiane", "Le gars roux","Loup Ykatorze"];
 
@@ -29,7 +29,7 @@ global.lgnames = ["Loup Koum", "Loup Che", "Loup Ysiane", "Le gars roux","Loup Y
 global.dies = [];
 
 //roles: dictionnaire des rôles
-global.roles = {"villager": "Simple Villageois", "wolf": "Loup-Garou", "hunter":"Chasseur","pf": "Somnambule","witch":"Sorcière","seer":"Voyante"};
+global.roles = {"villager": "Simple Villageois","cupidon":"Cupidon", "wolf": "Loup-Garou", "hunter":"Chasseur","pf": "Somnambule","witch":"Sorcière","seer":"Voyante"};
 //Rpic : Images des rôles
 global.Rpic = {"cupid": "https://i.ibb.co/xLVrLk5/Cupidon.png","villager":"https://i.ibb.co/9nHtFy2/villager.png", "wolf":"https://i.ibb.co/F4ZkjcD/wolf.png","witch":"https://i.ibb.co/vBTg7KM/Sorciere.png","seer":"https://i.ibb.co/wKPNFhP/seer.png", "hunter": "https://i.ibb.co/jgPTxFd/Chasseur.png"};
 //messages de timer
@@ -79,7 +79,7 @@ class Player{
 		this.chat = Gchats["wait"];
 		this.dead = false;
 		this.votes = [];
-		tis.couple = undefined;
+		this.couple = undefined;
 	};
 	//Envoi de message
 	async send(content){
@@ -117,8 +117,7 @@ function getByVotes(){
 	for (p in Gplayers){
 		if (Gplayers[p].votes.length > 0 && (maxVotes === undefined || Gplayers[p].votes.length > maxVotes.votes.length)){
 			maxVotes = Gplayers[p];
-		};
-		if (Gplayers[p].votes.length > maxVotes.votes.length) maxVotes = undefined;
+		}else	if (maxVotes !== undefined && Gplayers[p].votes.length == maxVotes.votes.length) maxVotes = undefined;
 	};
 	return maxVotes;
 };
@@ -153,10 +152,7 @@ async function mainTimer(sec){
 	};
 	}, 5000);
 };
-//Fonction de déroulement de la partie
-async function Next(){
-	console.log(Gchats);
-	var sec = 0;
+async function Verif(){
 	var VillageLife = false;
 	var i;
 	var survivors = Gplayers.filter(x => !x.dead);
@@ -189,6 +185,11 @@ async function Next(){
 		};
 		return;
 	};
+}
+//Fonction de déroulement de la partie
+async function Next(){
+	console.log(Gchats);
+	var sec = 0;
 	//On passe au tour de CUPI
 	if (Gchats["wait"] !== null || Gchats["village"] !== null){
 		if (Gchats["wait"] !== null){
@@ -199,7 +200,8 @@ async function Next(){
 			await destroy(Gchats["hunter"]);
 			Gchats["hunter"] = null;
 			Gplayers.filter(x => (x.role == "hunter"))[0].dead = true;
-			Gchats["wait"] = new Chat([],"#ff97a1",null);
+			await Verif();
+			Gchats["village"] = new Chat([],"#ff97a1",null);
 		}else{
 			nights++;
 		};
@@ -218,6 +220,7 @@ async function Next(){
 				return;
 			}else{
 				Murdered.dead = true;
+				await Verif();
 			};
 			Next();
 			return;
@@ -345,6 +348,8 @@ async function Next(){
 		Gchats["village"].list();
 		sec = 120;
 	};
+	await Verif();
+	if (!game) return;
 	timePassed = 0;
 	if (sec === 0){
 		await Next();
@@ -501,7 +506,7 @@ class Chat{
 				player.potions.splice(player.potions.indexOf("save"), 1);
 			};
 		};
-		if (cmd.startsWith("love") && cmd.split(" ").length > 2 && player.potions.includes("save")) {
+		if (cmd.startsWith("love") && cmd.split(" ").length > 2) {
 			let i = parseInt(cmd.split(" ")[1]);
 			let j = parseInt(cmd.split(" ")[2]);
 			if (i == j) return;
