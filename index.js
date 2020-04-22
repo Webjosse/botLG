@@ -31,7 +31,7 @@ global.dies = [];
 //roles: dictionnaire des rôles
 global.roles = {"villager": "Simple Villageois", "wolf": "Loup-Garou", "hunter":"Chasseur","pf": "Somnambule","witch":"Sorcière","seer":"Voyante"};
 //Rpic : Images des rôles
-global.Rpic = {"villager":"https://i.ibb.co/9nHtFy2/villager.png", "wolf":"https://i.ibb.co/F4ZkjcD/wolf.png","witch":"https://i.ibb.co/vBTg7KM/Sorciere.png","seer":"https://i.ibb.co/wKPNFhP/seer.png", "hunter": "https://i.ibb.co/jgPTxFd/Chasseur.png"};
+global.Rpic = {"cupid": "https://i.ibb.co/xLVrLk5/Cupidon.png","villager":"https://i.ibb.co/9nHtFy2/villager.png", "wolf":"https://i.ibb.co/F4ZkjcD/wolf.png","witch":"https://i.ibb.co/vBTg7KM/Sorciere.png","seer":"https://i.ibb.co/wKPNFhP/seer.png", "hunter": "https://i.ibb.co/jgPTxFd/Chasseur.png"};
 //messages de timer
 global.timerMessage = 0
 async function timerInit(second){
@@ -79,6 +79,7 @@ class Player{
 		this.chat = Gchats["wait"];
 		this.dead = false;
 		this.votes = [];
+		tis.couple = undefined;
 	};
 	//Envoi de message
 	async send(content){
@@ -158,20 +159,19 @@ async function Next(){
 	var sec = 0;
 	var VillageLife = false;
 	var i;
+	var survivors = Gplayers.filter(x => !x.dead);
 	//Vérification (pour les victoires)
-	for (i in compo){
-		if (IsLiving(compo[i]) && !(["wolf","dark","white"].includes(compo[i]))){
-			VillageLife = true;
-		};
-	};
+	if (survivors.filter(x => !["wolf","dark","white"].includes(x.role)).length > 0) VillageLife = true;
 	var WolfLife = false;
-	for (i in ["wolf","dark","white"]){
-		if (IsLiving(["wolf","dark","white"][i])){
-			WolfLife = true;
+	if (survivors.filter(x => ["wolf","dark","white"].includes(x.role)).length > 0) WolfLife = true;
+	if (survivors.length == 2 && survivors[1].couple == survivors[0]){
+		game = false;
+		for (i in Gplayers){
+			await Gplayers[i].member.send({embed:{color:16776960,title:"Le couple a gagné"}})
 		};
+		return
 	};
 	if (VillageLife && !WolfLife){
-		game = false;
 		for (i in Gplayers){
 			await Gplayers[i].member.send({embed:{color:16711680,title:"Les villageois ont gagné"}})
 		};
@@ -227,7 +227,7 @@ async function Next(){
 		Gchats["wait"] = null;
 		await destroy(Gchats["village"]);
 		Gchats["village"] = null;
-		Gchats["cupid"] = new Chat(Gplayers.filter(x => x.role === "cupid"),["love"],"#ff97a1",null);
+		Gchats["cupid"] = new Chat(Gplayers.filter(x => (x.role === "cupid" && !x.dead)),["love"],"#ff97a1",null);
 		if (IsLiving("cupid") && nights === 1){
 			sec = 30;
 			await announce("C'est au tour de cupidon")
@@ -499,6 +499,19 @@ class Chat{
 				await player.member.send({embed:{color:433703,description:"Vous sauvez "+Gplayers[i-1].name}});
 				dies.splice(dies.indexOf(Gplayers[i-1]), 1);
 				player.potions.splice(player.potions.indexOf("save"), 1);
+			};
+		};
+		if (cmd.startsWith("love") && cmd.split(" ").length > 2 && player.potions.includes("save")) {
+			let i = parseInt(cmd.split(" ")[1]);
+			let j = parseInt(cmd.split(" ")[2]);
+			if (i == j) return;
+			if (i !== NaN && i > 0 && j !== NaN && j > 0  ){
+					Gplayers[i-1].couple = Gplayers[j-1];
+					Gplayers[j-1].couple = Gplayers[i-1];
+					await Gplayers[i-1].member.send({embed:{color:6801151,description:"Vous êtes amoureux de "+Gplayers[j-1].name+"["+roles[Gplayers[j-1].role]+"]" }});
+					await Gplayers[j-1].member.send({embed:{color:6801151,description:"Vous êtes amoureux de "+Gplayers[i-1].name+"["+roles[Gplayers[i-1].role]+"]" }});
+					await player.member.send({embed:{color:6801151,description:Gplayers[j-1].name+" et "+Gplayers[i-1].name+" sont amoureux"}});
+					timePassed += 30;
 			};
 		};
 	};
